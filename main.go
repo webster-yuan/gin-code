@@ -1,6 +1,7 @@
 package main
 
 import (
+	pb "gin/pkg/pb/echo"
 	"html/template"
 	"net/http"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
+	"google.golang.org/protobuf/proto"
 )
 
 // loadTemplates 模板继承
@@ -86,6 +88,31 @@ func main() {
 	router.HTMLRender = loadTemplates(filepath.Join(basePath, "templates"))
 	router.GET("/v1/index", indexFunc)
 	router.GET("/v1/home", homeFunc)
+	// JSON渲染
+	router.GET("/someJSON", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "SomeJSON",
+		})
+	})
+	router.GET("moreJSON", func(c *gin.Context) {
+		var msg struct {
+			Name    string `json:"user"`
+			Message string `json:"message"`
+			Age     int    `json:"age"`
+		}
+		msg.Name = "syg"
+		msg.Age = 24
+		msg.Message = "hello world"
+		c.JSON(http.StatusOK, msg)
+	})
+	router.GET("/pb", func(c *gin.Context) {
+		resp := &pb.EchoResp{
+			Label: "test",
+			Nums:  []int64{1, 2},
+		}
+		out, _ := proto.Marshal(resp)
+		c.Data(http.StatusOK, "application/x-protobuf", out)
+	})
 	err := router.Run("localhost:8080")
 	if err != nil {
 		return
