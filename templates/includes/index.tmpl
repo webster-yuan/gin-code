@@ -1,0 +1,14 @@
+{{/* 指明要继承的骨架 */}}
+{{template "base" .}}
+
+{{/* 定义名为 content 的区块，会填到 base 的 {{template "content" .}} 处 */}}
+{{define "content"}}
+<div style="color:green">
+    <p>现在时间：{{.Now}}</p>
+    <ul>
+    {{range .Items}}
+        <li>{{.}}</li>
+    {{end}}
+    </ul>
+</div>
+{{end}}

@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Gin 模板继承</title>
+</head>
+<body>
+    <h1>这是 base.tmpl 的头部</h1>
+
+    <!-- 关键：把子页面内容插进来 -->
+    {{template "content" .}}
+
+    <footer>base 尾部</footer>
+</body>
+</html>
