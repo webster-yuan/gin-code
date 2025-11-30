@@ -1,0 +1,9 @@
+syntax = "proto3";
+package echo;
+
+option go_package = "gin/pkg/pb";
+
+message EchoResp {
+  string label = 1;
+  repeated int64 nums = 2;
+}
