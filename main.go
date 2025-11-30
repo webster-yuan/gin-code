@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	pb "gin/pkg/pb/echo"
 	"html/template"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/gin-contrib/multitemplate"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -72,6 +75,9 @@ func main() {
 	basePath := getCurrentPath()
 
 	router := gin.Default()
+	// 使用记录响应体的中间件
+	router.Use(ginBodyLogMiddleware)
+
 	router.GET("/hello", func(c *gin.Context) {
 		c.JSONP(200, gin.H{
 			"message": "hello world",
@@ -306,18 +312,103 @@ func main() {
 		c.HTML(http.StatusOK, "upload_file.html", nil)
 	})
 	// 路由组
-	userGroup := router.Group("/user")
+	userGroup := router.Group("/user", StatCost())
 	{
 		userGroup.GET("/index", getUser())
 	}
-	err := router.Run("localhost:8080")
-	if err != nil {
-		return
+
+	// gin中间件中使用goroutine
+	g := new(errgroup.Group) // 每个进程启动时拥有独立的 Group 实例
+	srv8080 := &http.Server{Addr: ":8080", Handler: router}
+	server01 := &http.Server{
+		Addr:         ":8081",
+		Handler:      router01(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
 	}
+	server02 := &http.Server{
+		Addr:         ":8082",
+		Handler:      router02(),
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 5 * time.Second,
+	}
+	g.Go(func() error {
+		return srv8080.ListenAndServe()
+	})
+	g.Go(func() error {
+		return server01.ListenAndServe()
+	})
+	g.Go(func() error {
+		return server02.ListenAndServe()
+	})
+	if err := g.Wait(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func router02() http.Handler {
+	e := gin.New()
+	e.Use(gin.Recovery())
+	e.GET("/router02", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"code":  http.StatusOK,
+			"error": "Welcome router02",
+		})
+	})
+	return e
+}
+
+func router01() http.Handler {
+	e := gin.New()
+	e.Use(gin.Recovery())
+	e.GET("/router01", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"code":  http.StatusOK,
+			"error": "Welcome router01",
+		})
+	})
+	return e
 }
 
 func getUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "hello world"})
 	}
+}
+
+// StatCost 记录接口耗时的中间件
+func StatCost() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		// 通过c.Set在请求上下文中设置值，后续的处理函数能够取到该值
+		c.Set("name", "webster")
+		// 1. 先记录要调用的函数名
+		handlerName := c.HandlerName() // 例如 "main.getUser"
+		path := c.Request.URL.Path     // 例如 "/user/index"
+
+		c.Next() // 真正执行业务 handler
+		cost := time.Since(start)
+
+		fmt.Printf("[StatCost] %s | %s | %v\n", path, handlerName, cost)
+	}
+}
+
+type BodyLogWriter struct {
+	gin.ResponseWriter               // 嵌入gin框架ResponseWriter
+	body               *bytes.Buffer // 记录用的response
+}
+
+func (w BodyLogWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+func ginBodyLogMiddleware(c *gin.Context) {
+	bodyLogWriter := &BodyLogWriter{
+		body:           bytes.NewBuffer([]byte{}),
+		ResponseWriter: c.Writer,
+	}
+	c.Writer = bodyLogWriter
+	c.Next()
+	fmt.Printf("response body is : %v\n", bodyLogWriter.body.String())
 }
