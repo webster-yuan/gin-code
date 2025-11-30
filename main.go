@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	pb "gin/pkg/pb/echo"
 	"html/template"
 	"net/http"
@@ -44,6 +45,12 @@ func homeFunc(c *gin.Context) {
 	c.HTML(http.StatusOK, "home.tmpl", gin.H{
 		"Now": time.Now().Format("2006-01-02 15:04:05"),
 	})
+}
+
+// Login ShouldBind 会按顺序合并 Query + Form + JSON + Header + Uri，一份代码多端通用
+type Login struct {
+	Username string `form:"username" json:"username" binding:"required" header:"username" uri:"user"`
+	Password string `form:"password" json:"password"  binding:"required" header:"password" uri:"user"`
 }
 
 // 返回 main.go 所在的文件夹
@@ -112,6 +119,104 @@ func main() {
 		}
 		out, _ := proto.Marshal(resp)
 		c.Data(http.StatusOK, "application/x-protobuf", out)
+	})
+	// 获取 queryString 参数, 拿的是？后面的参数
+	router.GET("/user/search", func(c *gin.Context) {
+		username := c.DefaultQuery("username", "")
+		address := c.Query("address")
+		c.JSON(http.StatusOK, gin.H{
+			"message":  "hello world",
+			"username": username,
+			"address":  address,
+		})
+	})
+	// 获取 form 参数
+	router.POST("posts/search", func(c *gin.Context) {
+		postName := c.PostForm("postName")
+		content := c.PostForm("content")
+		c.JSON(http.StatusOK, gin.H{
+			"message":  "hello world",
+			"postName": postName,
+			"content":  content,
+		})
+	})
+	// 获取 JSON 参数
+	router.POST("/json", func(c *gin.Context) {
+		reqBody, _ := c.GetRawData() // 从c.Request.Body读取请求数据
+		var msg map[string]interface{}
+		_ = json.Unmarshal(reqBody, &msg)
+		c.JSON(http.StatusOK, gin.H{})
+	})
+	// 路径参数
+	router.GET("/user/get/:username/:address", func(c *gin.Context) {
+		username := c.Param("username")
+		address := c.Param("address")
+		c.JSON(http.StatusOK, gin.H{
+			"message":  "hello world",
+			"username": username,
+			"address":  address,
+		})
+	})
+	// 参数绑定：基于请求的Content-Type识别请求数据类型并利用反射机制自动提取请求中QueryString、form表单、JSON、XML等参数到结构体
+	// 绑定JSON的示例 ({"username": "q1mi", "password": "123456"})
+	router.POST("/loginJSON", func(c *gin.Context) {
+		var login Login
+		if err := c.ShouldBind(&login); err != nil {
+			c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"username": login.Username,
+			"password": login.Password,
+		})
+	})
+	// 绑定表单格式实例（username=webster&password=syg）
+	router.POST("/loginForm", func(c *gin.Context) {
+		var login Login
+		if err := c.ShouldBind(&login); err != nil {
+			c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"username": login.Username,
+			"password": login.Password,
+		})
+	})
+	// 绑定QueryString示例
+	router.GET("/loginQuery", func(c *gin.Context) {
+		var login Login
+		if err := c.ShouldBind(&login); err != nil {
+			c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"username": login.Username,
+			"password": login.Password,
+		})
+
+	})
+	// 请求头中 HTTP 标准把 X-* 留给“用户自定义扩展”，不会与未来官方头冲突，所以参数是 X-Password
+	router.GET("/loginHeader", func(c *gin.Context) {
+		var login Login
+		if err := c.ShouldBind(&login); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"msg":      "from header",
+			"username": login.Username,
+			"password": login.Password,
+		})
+	})
+	router.GET("/loginUri/:id", func(c *gin.Context) {
+		var login Login
+		if err := c.ShouldBind(&login); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"msg":      "from uri",
+			"id":       "123",
+			"username": login.Username,
+			"password": login.Password,
+		})
 	})
 	err := router.Run("localhost:8080")
 	if err != nil {
