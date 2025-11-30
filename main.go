@@ -286,8 +286,38 @@ func main() {
 			"name":    name,
 		})
 	})
+	// HTTP 重定向
+	router.GET("/http/redirect", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "http://www.sogo.com/")
+	})
+	// 路由重定向
+	router.GET("/path/redirect", func(c *gin.Context) {
+		c.Request.URL.Path = "/upload/page"
+		router.HandleContext(c)
+	})
+	// 匹配所有请求方法的路由
+	router.Any("/test", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "hello world",
+		})
+	})
+	// 为没有配置处理函数的路由添加处理程序
+	router.NoRoute(func(c *gin.Context) {
+		c.HTML(http.StatusOK, "upload_file.html", nil)
+	})
+	// 路由组
+	userGroup := router.Group("/user")
+	{
+		userGroup.GET("/index", getUser())
+	}
 	err := router.Run("localhost:8080")
 	if err != nil {
 		return
+	}
+}
+
+func getUser() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "hello world"})
 	}
 }
