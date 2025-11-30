@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	pb "gin/pkg/pb/echo"
 	"html/template"
 	"net/http"
+	"os"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -25,6 +27,14 @@ func loadTemplates(templateDir string) multitemplate.Renderer {
 	includes, err := filepath.Glob(templateDir + "/includes/*.tmpl")
 	if err != nil {
 		panic(err)
+	}
+	pages, err := filepath.Glob(templateDir + "/*.html") // 根目录的 html
+	if err != nil {
+		panic(err)
+	}
+	// 简单页面直接注册
+	for _, p := range pages {
+		r.AddFromFiles(filepath.Base(p), p)
 	}
 	// 为layouts 和 includes 目录生成 templates map
 	for _, include := range includes {
@@ -216,6 +226,64 @@ func main() {
 			"id":       "123",
 			"username": login.Username,
 			"password": login.Password,
+		})
+	})
+	// 文件上传
+	router.GET("/upload/page", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "upload_file.html", nil)
+	})
+	router.POST("/upload", func(c *gin.Context) {
+		file, err := c.FormFile("f1")
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{"message": err.Error()})
+			return
+		}
+		dst := fmt.Sprintf("C:/tmp/%s", file.Filename)
+		err = c.SaveUploadedFile(file, dst)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{"message": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message": "upload success",
+		})
+	})
+	// 多个文件上传
+	// 渲染上传页
+	router.GET("/upload/multi/page", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "upload_multi.html", nil)
+	})
+	router.POST("/upload/multi", func(c *gin.Context) {
+		// 1.解析multiform
+		form, err := c.MultipartForm()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		// 2. 提取文件数组
+		files := form.File["files"]
+		if len(files) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "no files uploaded"})
+			return
+		}
+		// 3. 保存文件目录
+		err = os.MkdirAll("C:/tmp/upload", 0755)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "make dir error"})
+			return
+		}
+		var name []string
+		for _, file := range files {
+			dst := filepath.Join("C:/tmp/upload", file.Filename)
+			if err := c.SaveUploadedFile(file, dst); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			name = append(name, file.Filename)
+		}
+		c.JSON(http.StatusOK, gin.H{
+			"message": fmt.Sprintf("upload success, %d files", len(name)),
+			"name":    name,
 		})
 	})
 	err := router.Run("localhost:8080")
