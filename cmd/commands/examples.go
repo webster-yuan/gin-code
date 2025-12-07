@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gin/examples/advanced"
 	"gin/examples/basics"
+	"gin/examples/standard_library/encode"
 
 	"github.com/spf13/cobra"
 )
@@ -24,7 +25,8 @@ var ExamplesCmd = &cobra.Command{
 
 func init() {
 	// 添加子命令
-	ExamplesCmd.AddCommand(advancedCmd)
+	//ExamplesCmd.AddCommand(advancedCmd)
+	ExamplesCmd.AddCommand(standardLibraryCmd)
 	//ExamplesCmd.AddCommand(basicsCmd)
 	//ExamplesCmd.AddCommand(concurrencyCmd)
 }
@@ -36,6 +38,17 @@ var advancedCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("运行初阶语法示例...")
 		advanced.GenericsMain()
+	},
+}
+
+// standard_library 标准库示例命令
+var standardLibraryCmd = &cobra.Command{
+	Use:   "basics",
+	Short: "运行标准库语法示例",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("运行标准库语法示例...")
+		// 调用 XML 示例代码
+		encode.ProtoMain()
 	},
 }
 
