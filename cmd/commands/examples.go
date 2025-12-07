@@ -35,7 +35,7 @@ var advancedCmd = &cobra.Command{
 	Short: "运行初阶语法示例",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("运行初阶语法示例...")
-		advanced.InterfaceMain()
+		advanced.GenericsMain()
 	},
 }
 
