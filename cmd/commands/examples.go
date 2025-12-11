@@ -25,19 +25,19 @@ var ExamplesCmd = &cobra.Command{
 
 func init() {
 	// 添加子命令
-	//ExamplesCmd.AddCommand(advancedCmd)
-	ExamplesCmd.AddCommand(standardLibraryCmd)
+	ExamplesCmd.AddCommand(advancedCmd)
+	//ExamplesCmd.AddCommand(standardLibraryCmd)
 	//ExamplesCmd.AddCommand(basicsCmd)
 	//ExamplesCmd.AddCommand(concurrencyCmd)
 }
 
-// basicsCmd 初阶语法示例命令
+// advancedCmd 初阶语法示例命令
 var advancedCmd = &cobra.Command{
-	Use:   "basics",
-	Short: "运行初阶语法示例",
+	Use:   "advanced",
+	Short: "运行进阶语法示例",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("运行初阶语法示例...")
-		advanced.GenericsMain()
+		fmt.Println("运行进阶语法示例...")
+		advanced.CGoMain()
 	},
 }
 
