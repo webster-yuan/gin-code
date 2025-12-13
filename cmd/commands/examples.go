@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"gin/examples/advanced"
 	"gin/examples/basics"
-	"gin/examples/standard_library/encode"
+	"gin/examples/standard_library/strings"
 
 	"github.com/spf13/cobra"
 )
@@ -18,15 +18,16 @@ var ExamplesCmd = &cobra.Command{
 		fmt.Println("Go语法示例运行中...")
 		fmt.Println("请选择具体的示例类型，例如：")
 		//fmt.Println("  - examples basics: 运行初阶语法示例")
-		fmt.Println("  - examples advanced: 运行进阶语法示例")
+		//fmt.Println("  - examples advanced: 运行进阶语法示例")
+		fmt.Println("  - examples standard_library: 运行标准库语法示例")
 		//fmt.Println("  - examples concurrency: 运行并发示例")
 	},
 }
 
 func init() {
 	// 添加子命令
-	ExamplesCmd.AddCommand(advancedCmd)
-	//ExamplesCmd.AddCommand(standardLibraryCmd)
+	//ExamplesCmd.AddCommand(advancedCmd)
+	ExamplesCmd.AddCommand(standardLibraryCmd)
 	//ExamplesCmd.AddCommand(basicsCmd)
 	//ExamplesCmd.AddCommand(concurrencyCmd)
 }
@@ -43,12 +44,13 @@ var advancedCmd = &cobra.Command{
 
 // standard_library 标准库示例命令
 var standardLibraryCmd = &cobra.Command{
-	Use:   "basics",
+	Use:   "standard_library",
 	Short: "运行标准库语法示例",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("运行标准库语法示例...")
 		// 调用 XML 示例代码
-		encode.ProtoMain()
+		//encode.ProtoMain()
+		strings.StringMain()
 	},
 }
 
