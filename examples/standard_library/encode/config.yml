@@ -1,0 +1,5 @@
+database: oracle
+url: localhost
+port: 3326
+username: root
+password: "123456"

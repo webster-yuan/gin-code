@@ -2,7 +2,9 @@ package commands
 
 import (
 	"fmt"
+	"gin/examples/advanced"
 	"gin/examples/basics"
+	"gin/examples/standard_library/strings"
 
 	"github.com/spf13/cobra"
 )
@@ -15,23 +17,49 @@ var ExamplesCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Go语法示例运行中...")
 		fmt.Println("请选择具体的示例类型，例如：")
-		fmt.Println("  - examples basics: 运行基础语法示例")
-		fmt.Println("  - examples concurrency: 运行并发示例")
+		//fmt.Println("  - examples basics: 运行初阶语法示例")
+		//fmt.Println("  - examples advanced: 运行进阶语法示例")
+		fmt.Println("  - examples standard_library: 运行标准库语法示例")
+		//fmt.Println("  - examples concurrency: 运行并发示例")
 	},
 }
 
 func init() {
 	// 添加子命令
-	ExamplesCmd.AddCommand(basicsCmd)
-	ExamplesCmd.AddCommand(concurrencyCmd)
+	//ExamplesCmd.AddCommand(advancedCmd)
+	ExamplesCmd.AddCommand(standardLibraryCmd)
+	//ExamplesCmd.AddCommand(basicsCmd)
+	//ExamplesCmd.AddCommand(concurrencyCmd)
 }
 
-// basicsCmd 基础语法示例命令
+// advancedCmd 初阶语法示例命令
+var advancedCmd = &cobra.Command{
+	Use:   "advanced",
+	Short: "运行进阶语法示例",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("运行进阶语法示例...")
+		advanced.CGoMain()
+	},
+}
+
+// standard_library 标准库示例命令
+var standardLibraryCmd = &cobra.Command{
+	Use:   "standard_library",
+	Short: "运行标准库语法示例",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("运行标准库语法示例...")
+		// 调用 XML 示例代码
+		//encode.ProtoMain()
+		strings.StringMain()
+	},
+}
+
+// basicsCmd 初阶语法示例命令
 var basicsCmd = &cobra.Command{
 	Use:   "basics",
-	Short: "运行基础语法示例",
+	Short: "运行初阶语法示例",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("运行基础语法示例...")
+		fmt.Println("运行初阶语法示例...")
 		// 调用结构体示例代码
 		basics.ExampleStructs()
 	},
