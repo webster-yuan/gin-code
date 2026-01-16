@@ -2,7 +2,6 @@ package api
 
 import (
 	"gin/internal/api/handlers"
-	"gin/internal/api/middleware"
 	"net/http"
 	"path/filepath"
 	"runtime"
@@ -64,10 +63,36 @@ func SetupRouter() *gin.Engine {
 	router.Any("/test", handlers.TestHandler())
 	router.NoRoute(handlers.NoRouteHandler())
 
-	// 路由组
-	userGroup := router.Group("/user", middleware.StatCost())
+	// 路由组（已迁移到 SetupRouterWithDI，此处保留注释）
+	// userGroup := router.Group("/user", middleware.StatCost())
+	// {
+	// 	userGroup.GET("/index", handlers.GetUser())
+	// }
+
+	return router
+}
+
+// SetupRouterWithDI 设置路由（带依赖注入）
+func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
+	router := gin.Default()
+	basePath := getCurrentPath()
+	basePath = filepath.Dir(filepath.Dir(basePath))
+
+	// 模板和静态文件设置
+	handlers.SetupTemplates(router, basePath)
+
+	// API 路由组
+	apiGroup := router.Group("/api/v1")
 	{
-		userGroup.GET("/index", handlers.GetUser())
+		// 用户相关路由
+		users := apiGroup.Group("/users")
+		{
+			users.POST("", userHandler.CreateUser())       // POST /api/v1/users
+			users.GET("", userHandler.GetAllUsers())       // GET /api/v1/users
+			users.GET("/:id", userHandler.GetUser())       // GET /api/v1/users/:id
+			users.PUT("/:id", userHandler.UpdateUser())    // PUT /api/v1/users/:id
+			users.DELETE("/:id", userHandler.DeleteUser()) // DELETE /api/v1/users/:id
+		}
 	}
 
 	return router

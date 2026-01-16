@@ -23,8 +23,8 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	// 添加子命令
 	rootCmd.AddCommand(commands.ServerCmd)
-	rootCmd.AddCommand(commands.DSCmd)
-	rootCmd.AddCommand(commands.ExamplesCmd)
+	//rootCmd.AddCommand(commands.DSCmd)
+	//rootCmd.AddCommand(commands.ExamplesCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)

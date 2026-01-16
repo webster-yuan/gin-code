@@ -1,0 +1,12 @@
+server:
+  port: "8080"
+  read_timeout: 5
+  write_timeout: 5
+
+database:
+  driver: "sqlite3"  # mysql 或 sqlite3
+  dsn: "./data/app.db"  # SQLite 文件路径，或 MySQL DSN
+
+logging:
+  level: "info"
+#  file: "./logs/app.log"

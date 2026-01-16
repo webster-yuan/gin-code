@@ -14,15 +14,15 @@ var Log *zap.Logger
 // InitLogger 初始化日志系统
 func InitLogger(cfg *config.LoggingConfig) *zap.Logger {
 	var output io.Writer = os.Stdout
-
-	// 如果配置了日志文件，使用文件输出
-	if cfg.File != "" {
-		file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			panic(err)
-		}
-		output = file
-	}
+	//
+	//// 如果配置了日志文件，使用文件输出
+	//if cfg.File != "" {
+	//	file, err := os.OpenFile(cfg.File, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	//	if err != nil {
+	//		panic(err)
+	//	}
+	//	output = file
+	//}
 
 	// 配置日志级别
 	var level zapcore.Level

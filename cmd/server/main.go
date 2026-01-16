@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof" // 启用 pprof
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"gin/internal/api"
+	"gin/internal/api/handlers"
 	apimiddleware "gin/internal/api/middleware" // API中间件包别名
 	"gin/internal/config"
 	"gin/internal/database"
@@ -18,7 +20,10 @@ import (
 	"gin/internal/logger"
 	"gin/internal/metrics"
 	appmiddleware "gin/internal/middleware" // 应用中间件包别名
+	"gin/internal/repository"
+	"gin/internal/service"
 
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 )
@@ -36,9 +41,20 @@ func Main() {
 		}
 	}(log)
 
-	// 3. 初始化数据库连接（如果有DSN配置）
+	// 启动 pprof HTTP 服务器（用于性能分析）
+	go func() {
+		pprofAddr := ":6060"
+		log.Info("pprof 性能分析服务启动", zap.String("addr", pprofAddr))
+		if err := http.ListenAndServe(pprofAddr, nil); err != nil {
+			log.Error("pprof 服务启动失败", zap.Error(err))
+		}
+	}()
+
+	// 3. 初始化数据库连接
+	var db database.DB
 	if cfg.Database.DSN != "" && cfg.Database.DSN != "user:password@tcp(localhost:3306)/dbname" {
-		db, err := database.InitDB(cfg.Database.DSN)
+		var err error
+		db, err = database.InitDB(cfg.Database.Driver, cfg.Database.DSN)
 		if err != nil {
 			log.Error("数据库初始化失败", zap.Error(err))
 		} else {
@@ -48,13 +64,38 @@ func Main() {
 					panic(err)
 				}
 			}(db)
+
+			// 初始化数据库表结构
+			if err := database.InitSchema(db); err != nil {
+				log.Error("数据库表初始化失败", zap.Error(err))
+			} else {
+				log.Info("数据库表初始化成功")
+			}
+
 			// 注册到DI容器
 			di.GetContainer().Register("db", db)
+			log.Info("数据库连接成功", zap.String("driver", cfg.Database.Driver), zap.String("dsn", cfg.Database.DSN))
 		}
 	}
 
-	// 4. 设置路由
-	router := api.SetupRouter()
+	// 4. 初始化三层架构（如果数据库连接成功）
+	var router *gin.Engine
+	if db != nil {
+		// 创建 Repository 层
+		userRepo := repository.NewUserRepository(db)
+
+		// 创建 Service 层
+		userService := service.NewUserService(userRepo)
+
+		// 创建 Handler 层
+		userHandler := handlers.NewUserHandler(userService)
+
+		// 设置路由（带三层架构）
+		router = api.SetupRouterWithDI(userHandler)
+	} else {
+		// 使用原有路由（无数据库）
+		router = api.SetupRouter()
+	}
 
 	// 5. 添加中间件
 	router.Use(apimiddleware.GinBodyLogMiddleware()) // 使用API中间件
