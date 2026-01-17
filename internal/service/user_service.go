@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"gin/internal/auth"
+	"gin/internal/config"
 	"gin/internal/errors"
 	"gin/internal/models"
 	"gin/internal/repository"
+	"time"
 )
 
 // UserService 用户服务接口
@@ -17,6 +20,7 @@ type UserService interface {
 	GetAllUsers(ctx context.Context) ([]*models.User, error)
 	UpdateUser(ctx context.Context, id int64, req *models.UpdateUserRequest) (*models.User, error)
 	DeleteUser(ctx context.Context, id int64) error
+	Login(ctx context.Context, req *models.LoginRequest) (*models.LoginResponse, error)
 }
 
 // userService 用户服务实现
@@ -40,11 +44,18 @@ func (s *userService) CreateUser(ctx context.Context, req *models.CreateUserRequ
 		return nil, errors.NewBadRequestError("邮箱已被使用", fmt.Errorf("email already exists: %s", req.Email))
 	}
 
+	// 加密密码
+	hashedPassword, err := auth.HashPassword(req.Password)
+	if err != nil {
+		return nil, errors.NewInternalServerError("密码加密失败", err)
+	}
+
 	// 创建用户
 	user := &models.User{
-		Name:  req.Name,
-		Email: req.Email,
-		Age:   req.Age,
+		Name:     req.Name,
+		Email:    req.Email,
+		Password: hashedPassword,
+		Age:      req.Age,
 	}
 
 	return s.userRepo.Create(ctx, user)
@@ -144,4 +155,40 @@ func (s *userService) DeleteUser(ctx context.Context, id int64) error {
 	}
 
 	return s.userRepo.Delete(ctx, id)
+}
+
+// Login 用户登录
+func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*models.LoginResponse, error) {
+	// 检查邮箱是否存在
+	user, err := s.userRepo.FindByEmail(ctx, req.Email)
+	if err != nil {
+		return nil, errors.NewUnauthorizedError("邮箱或密码错误", fmt.Errorf("invalid email or password"))
+	}
+
+	// 验证密码
+	if !auth.CheckPassword(user.Password, req.Password) {
+		return nil, errors.NewUnauthorizedError("邮箱或密码错误", fmt.Errorf("invalid email or password"))
+	}
+
+	// 获取JWT配置
+	cfg := config.GetConfig()
+	jwtConfig := auth.NewJWTConfig(
+		cfg.JWT.SecretKey,
+		time.Duration(cfg.JWT.ExpiresIn)*time.Hour,
+	)
+
+	// 生成JWT令牌
+	token, err := jwtConfig.GenerateToken(user.ID, user.Email, user.Name)
+	if err != nil {
+		return nil, errors.NewInternalServerError("生成令牌失败", err)
+	}
+
+	// 返回用户信息和令牌
+	// 注意：不要返回密码字段
+	user.Password = ""
+
+	return &models.LoginResponse{
+		Token: token,
+		User:  *user,
+	}, nil
 }

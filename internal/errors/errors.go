@@ -8,6 +8,7 @@ import (
 	"gin/internal/api/response"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 // AppError 应用错误结构体
@@ -54,6 +55,15 @@ func NewInternalServerError(msg string, err error) *AppError {
 	}
 }
 
+// NewUnauthorizedError 创建401错误
+func NewUnauthorizedError(msg string, err error) *AppError {
+	return &AppError{
+		Code:    http.StatusUnauthorized,
+		Message: msg,
+		Err:     err,
+	}
+}
+
 // ErrorHandler 统一错误处理中间件
 func ErrorHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -72,6 +82,9 @@ func ErrorHandler() gin.HandlerFunc {
 			if errors.As(err, &appErr) {
 				// 使用统一响应格式
 				respondError(c, appErr)
+			} else if _, ok := err.(validator.ValidationErrors); ok {
+				// 处理参数验证错误
+				respondError(c, NewBadRequestError("请求参数错误", err))
 			} else {
 				// 对于未处理的错误，返回500
 				respondError(c, NewInternalServerError("内部服务器错误", err))

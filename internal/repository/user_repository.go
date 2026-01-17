@@ -38,8 +38,8 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 
 	// SQLite 不支持 RETURNING，使用 Exec + LastInsertId
 	result, err := r.db.Exec(
-		"INSERT INTO users (name, email, age, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-		user.Name, user.Email, user.Age, user.CreatedAt, user.UpdatedAt,
+		"INSERT INTO users (name, email, password, age, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+		user.Name, user.Email, user.Password, user.Age, user.CreatedAt, user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("创建用户失败: %w", err)
@@ -84,7 +84,7 @@ func (r *userRepository) FindByID(ctx context.Context, id int64) (*models.User, 
 // FindByEmail 根据邮箱查找用户
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
-		SELECT id, name, email, age, created_at, updated_at
+		SELECT id, name, email, password, age, created_at, updated_at
 		FROM users
 		WHERE email = ?
 	`
@@ -94,6 +94,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 		&user.ID,
 		&user.Name,
 		&user.Email,
+		&user.Password,
 		&user.Age,
 		&user.CreatedAt,
 		&user.UpdatedAt,

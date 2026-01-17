@@ -10,3 +10,6 @@ database:
 logging:
   level: "info"
 #  file: "./logs/app.log"
+jwt:
+  secret_key: "your-secret-key-change-in-production"
+  expires_in: 24

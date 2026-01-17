@@ -12,14 +12,11 @@ import (
 
 	"gin/internal/api"
 	"gin/internal/api/handlers"
-	apimiddleware "gin/internal/api/middleware" // API中间件包别名
 	"gin/internal/config"
 	"gin/internal/database"
 	"gin/internal/di"
-	"gin/internal/errors"
 	"gin/internal/logger"
 	"gin/internal/metrics"
-	appmiddleware "gin/internal/middleware" // 应用中间件包别名
 	"gin/internal/repository"
 	"gin/internal/service"
 
@@ -96,12 +93,6 @@ func Main() {
 		// 使用原有路由（无数据库）
 		router = api.SetupRouter()
 	}
-
-	// 5. 添加中间件
-	router.Use(apimiddleware.GinBodyLogMiddleware()) // 使用API中间件
-	router.Use(errors.ErrorHandler())                // 添加错误处理中间件
-	router.Use(metrics.PrometheusMiddleware())       // 添加指标中间件
-	router.Use(appmiddleware.Recovery())             // 使用应用中间件的Recovery
 
 	// 6. 添加指标路由
 	router.GET("/metrics", metrics.MetricsHandler())

@@ -1,9 +1,14 @@
 package api
 
 import (
+	"fmt"
 	"gin/internal/api/handlers"
 	"gin/internal/api/middleware"
+	apimiddleware "gin/internal/api/middleware"
 	_ "gin/internal/docs" // 导入Swagger文档
+	"gin/internal/errors"
+	"gin/internal/metrics"
+	appmiddleware "gin/internal/middleware"
 	"net/http"
 	"path/filepath"
 	"runtime"
@@ -17,12 +22,18 @@ import (
 func getCurrentPath() string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Dir(file)
-}
+} // SetupRouter 设置路由（无依赖注入）
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 	basePath := getCurrentPath()
 	// 向上跳两级到项目根目录
 	basePath = filepath.Dir(filepath.Dir(basePath))
+
+	// 添加全局中间件（在设置路由之前）
+	router.Use(apimiddleware.GinBodyLogMiddleware())
+	router.Use(errors.ErrorHandler())
+	router.Use(metrics.PrometheusMiddleware())
+	router.Use(appmiddleware.Recovery())
 
 	// 模板和静态文件设置
 	handlers.SetupTemplates(router, basePath)
@@ -82,11 +93,17 @@ func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
 	basePath := getCurrentPath()
 	basePath = filepath.Dir(filepath.Dir(basePath))
 
-	// 模板和静态文件设置
-	handlers.SetupTemplates(router, basePath)
+	// 添加全局中间件（在设置路由之前）
+	router.Use(apimiddleware.GinBodyLogMiddleware())
+	router.Use(errors.ErrorHandler())
+	router.Use(metrics.PrometheusMiddleware())
+	router.Use(appmiddleware.Recovery())
 
 	// 添加请求ID中间件（全局）
 	router.Use(middleware.RequestIDMiddleware())
+
+	// 模板和静态文件设置
+	handlers.SetupTemplates(router, basePath)
 
 	// 健康检查端点
 	router.GET("/health", handlers.HealthHandler())
@@ -97,8 +114,19 @@ func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
 	// API 路由组
 	apiGroup := router.Group("/api/v1")
 	{
-		// 用户相关路由
+		// 认证路由（不需要认证）
+		auth := apiGroup.Group("/auth")
+		{
+			auth.POST("/login", userHandler.Login()) // POST /api/v1/auth/login
+		}
+
+		// 用户相关路由（需要认证）
 		users := apiGroup.Group("/users")
+		users.Use(func(c *gin.Context) {
+			fmt.Println("=== 用户路由组中间件被调用 ===")
+			c.Next()
+		})
+		users.Use(middleware.NewAuthMiddleware()) // 应用认证中间件
 		{
 			users.POST("", userHandler.CreateUser())       // POST /api/v1/users
 			users.GET("", userHandler.GetAllUsers())       // GET /api/v1/users
