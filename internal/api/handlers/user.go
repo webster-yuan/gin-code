@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"net/http"
 	"strconv"
 
+	"gin/internal/api/response"
 	"gin/internal/models"
 	"gin/internal/service"
 
@@ -37,11 +37,7 @@ func (h *UserHandler) CreateUser() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusCreated, gin.H{
-			"code":    200,
-			"message": "创建成功",
-			"data":    user,
-		})
+		response.Created(c, "创建成功", user)
 	}
 }
 
@@ -61,11 +57,7 @@ func (h *UserHandler) GetUser() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-			"data":    user,
-		})
+		response.Success(c, "获取成功", user)
 	}
 }
 
@@ -78,11 +70,7 @@ func (h *UserHandler) GetAllUsers() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "success",
-			"data":    users,
-		})
+		response.Success(c, "获取成功", users)
 	}
 }
 
@@ -108,11 +96,7 @@ func (h *UserHandler) UpdateUser() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "更新成功",
-			"data":    user,
-		})
+		response.Success(c, "更新成功", user)
 	}
 }
 
@@ -132,9 +116,6 @@ func (h *UserHandler) DeleteUser() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{
-			"code":    200,
-			"message": "删除成功",
-		})
+		response.Success(c, "删除成功", nil)
 	}
 }

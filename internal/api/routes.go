@@ -2,6 +2,7 @@ package api
 
 import (
 	"gin/internal/api/handlers"
+	"gin/internal/api/middleware"
 	"net/http"
 	"path/filepath"
 	"runtime"
@@ -80,6 +81,12 @@ func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
 
 	// 模板和静态文件设置
 	handlers.SetupTemplates(router, basePath)
+
+	// 添加请求ID中间件（全局）
+	router.Use(middleware.RequestIDMiddleware())
+
+	// 健康检查端点
+	router.GET("/health", handlers.HealthHandler())
 
 	// API 路由组
 	apiGroup := router.Group("/api/v1")
