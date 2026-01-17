@@ -3,11 +3,14 @@ package api
 import (
 	"gin/internal/api/handlers"
 	"gin/internal/api/middleware"
+	_ "gin/internal/docs" // 导入Swagger文档
 	"net/http"
 	"path/filepath"
 	"runtime"
 
 	"github.com/gin-gonic/gin"
+	"github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
 )
 
 // 返回 main.go 所在的文件夹
@@ -87,6 +90,9 @@ func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
 
 	// 健康检查端点
 	router.GET("/health", handlers.HealthHandler())
+
+	// Swagger 文档路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// API 路由组
 	apiGroup := router.Group("/api/v1")

@@ -1,0 +1,293 @@
+basePath: /
+definitions:
+  models.CreateUserRequest:
+    properties:
+      age:
+        maximum: 150
+        minimum: 0
+        type: integer
+      email:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  models.UpdateUserRequest:
+    properties:
+      age:
+        maximum: 150
+        minimum: 0
+        type: integer
+      email:
+        type: string
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+    type: object
+  models.User:
+    properties:
+      age:
+        maximum: 150
+        minimum: 0
+        type: integer
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        maxLength: 50
+        minLength: 2
+        type: string
+      updated_at:
+        type: string
+    required:
+    - email
+    - name
+    type: object
+  response.Response:
+    properties:
+      code:
+        description: 业务状态码（与 HTTP 状态码一致）
+        type: integer
+      data:
+        description: 数据（成功时返回）
+      error:
+        description: 错误信息（失败时返回）
+        type: string
+      message:
+        description: 消息描述
+        type: string
+      request_id:
+        description: 请求 ID（用于追踪）
+        type: string
+      timestamp:
+        description: 时间戳（Unix 时间戳，秒）
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+    url: http://www.example.com/support
+  description: 这是一个基于Gin框架的企业级Go项目API
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Go Startup API
+  version: "1.0"
+paths:
+  /api/v1/users:
+    get:
+      consumes:
+      - application/json
+      description: 获取系统中所有用户的列表
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.User'
+                  type: array
+              type: object
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取所有用户
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: 创建一个新的用户记录
+      parameters:
+      - description: 用户信息
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: 创建成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 创建新用户
+      tags:
+      - users
+  /api/v1/users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 根据用户ID删除用户记录
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 删除成功
+          schema:
+            $ref: '#/definitions/response.Response'
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 删除用户
+      tags:
+      - users
+    get:
+      consumes:
+      - application/json
+      description: 根据用户ID获取用户详细信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 获取成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 获取单个用户
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: 根据用户ID更新用户信息
+      parameters:
+      - description: 用户ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 更新的用户信息
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 更新成功
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/models.User'
+              type: object
+        "400":
+          description: 请求参数错误
+          schema:
+            $ref: '#/definitions/response.Response'
+        "404":
+          description: 用户不存在
+          schema:
+            $ref: '#/definitions/response.Response'
+        "500":
+          description: 服务器内部错误
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 更新用户信息
+      tags:
+      - users
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: 检查服务是否正常运行
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 服务正常
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.Response'
+            - properties:
+                data:
+                  additionalProperties: true
+                  type: object
+              type: object
+        "500":
+          description: 服务异常
+          schema:
+            $ref: '#/definitions/response.Response'
+      summary: 健康检查
+      tags:
+      - health
+schemes:
+- http
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
