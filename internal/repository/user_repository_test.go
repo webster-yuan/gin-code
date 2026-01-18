@@ -24,6 +24,7 @@ func setupTestDB(t *testing.T) database.DB {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL,
 			email TEXT NOT NULL UNIQUE,
+			password TEXT NOT NULL,
 			age INTEGER NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -58,9 +59,10 @@ func TestUserRepository_Create(t *testing.T) {
 
 	t.Run("成功创建用户", func(t *testing.T) {
 		user := &models.User{
-			Name:  "张三",
-			Email: "zhangsan@example.com",
-			Age:   25,
+			Name:     "张三",
+			Email:    "zhangsan@example.com",
+			Password: "hashed_password_for_test",
+			Age:      25,
 		}
 
 		created, err := repo.Create(ctx, user)
@@ -75,17 +77,19 @@ func TestUserRepository_Create(t *testing.T) {
 
 	t.Run("创建重复邮箱应该失败", func(t *testing.T) {
 		user1 := &models.User{
-			Name:  "用户1",
-			Email: "duplicate@example.com",
-			Age:   20,
+			Name:     "用户1",
+			Email:    "duplicate@example.com",
+			Password: "hashed_password1",
+			Age:      20,
 		}
 		_, err := repo.Create(ctx, user1)
 		require.NoError(t, err, "第一次创建应该成功")
 
 		user2 := &models.User{
-			Name:  "用户2",
-			Email: "duplicate@example.com", // 重复邮箱
-			Age:   30,
+			Name:     "用户2",
+			Email:    "duplicate@example.com", // 重复邮箱
+			Password: "hashed_password2",
+			Age:      30,
 		}
 		_, err = repo.Create(ctx, user2)
 		assert.Error(t, err, "重复邮箱应该失败")
@@ -103,9 +107,10 @@ func TestUserRepository_FindByID(t *testing.T) {
 	t.Run("成功查找存在的用户", func(t *testing.T) {
 		// 先创建用户
 		user := &models.User{
-			Name:  "李四",
-			Email: "lisi@example.com",
-			Age:   30,
+			Name:     "李四",
+			Email:    "lisi@example.com",
+			Password: "hashed_password",
+			Age:      30,
 		}
 		created, err := repo.Create(ctx, user)
 		require.NoError(t, err)
@@ -137,9 +142,10 @@ func TestUserRepository_FindByEmail(t *testing.T) {
 	t.Run("成功查找存在的用户", func(t *testing.T) {
 		// 先创建用户
 		user := &models.User{
-			Name:  "王五",
-			Email: "wangwu@example.com",
-			Age:   28,
+			Name:     "王五",
+			Email:    "wangwu@example.com",
+			Password: "hashed_password",
+			Age:      28,
 		}
 		created, err := repo.Create(ctx, user)
 		require.NoError(t, err)
@@ -176,9 +182,9 @@ func TestUserRepository_FindAll(t *testing.T) {
 	t.Run("应该返回所有用户", func(t *testing.T) {
 		// 创建多个用户
 		users := []*models.User{
-			{Name: "用户1", Email: "user1@example.com", Age: 20},
-			{Name: "用户2", Email: "user2@example.com", Age: 25},
-			{Name: "用户3", Email: "user3@example.com", Age: 30},
+			{Name: "用户1", Email: "user1@example.com", Password: "hashed_password1", Age: 20},
+			{Name: "用户2", Email: "user2@example.com", Password: "hashed_password2", Age: 25},
+			{Name: "用户3", Email: "user3@example.com", Password: "hashed_password3", Age: 30},
 		}
 
 		for _, user := range users {
@@ -204,18 +210,20 @@ func TestUserRepository_Update(t *testing.T) {
 	t.Run("成功更新用户", func(t *testing.T) {
 		// 先创建用户
 		user := &models.User{
-			Name:  "原始名称",
-			Email: "original@example.com",
-			Age:   20,
+			Name:     "原始名称",
+			Email:    "original@example.com",
+			Password: "hashed_password",
+			Age:      20,
 		}
 		created, err := repo.Create(ctx, user)
 		require.NoError(t, err)
 
 		// 更新用户
 		updatedUser := &models.User{
-			Name:  "更新后的名称",
-			Email: "updated@example.com",
-			Age:   25,
+			Name:     "更新后的名称",
+			Email:    "updated@example.com",
+			Password: "hashed_password",
+			Age:      25,
 		}
 		updated, err := repo.Update(ctx, created.ID, updatedUser)
 		require.NoError(t, err)
@@ -229,9 +237,10 @@ func TestUserRepository_Update(t *testing.T) {
 
 	t.Run("更新不存在的用户应该失败", func(t *testing.T) {
 		user := &models.User{
-			Name:  "测试",
-			Email: "test@example.com",
-			Age:   20,
+			Name:     "测试",
+			Email:    "test@example.com",
+			Password: "hashed_password",
+			Age:      20,
 		}
 		_, err := repo.Update(ctx, 99999, user)
 		assert.Error(t, err)
@@ -250,9 +259,10 @@ func TestUserRepository_Delete(t *testing.T) {
 	t.Run("成功删除用户", func(t *testing.T) {
 		// 先创建用户
 		user := &models.User{
-			Name:  "待删除用户",
-			Email: "todelete@example.com",
-			Age:   20,
+			Name:     "待删除用户",
+			Email:    "todelete@example.com",
+			Password: "hashed_password",
+			Age:      20,
 		}
 		created, err := repo.Create(ctx, user)
 		require.NoError(t, err)
@@ -284,9 +294,10 @@ func TestUserRepository_Integration(t *testing.T) {
 
 	// 1. 创建用户
 	user := &models.User{
-		Name:  "集成测试用户",
-		Email: "integration@example.com",
-		Age:   25,
+		Name:     "集成测试用户",
+		Email:    "integration@example.com",
+		Password: "hashed_password",
+		Age:      25,
 	}
 	created, err := repo.Create(ctx, user)
 	require.NoError(t, err)
@@ -299,9 +310,10 @@ func TestUserRepository_Integration(t *testing.T) {
 
 	// 3. 更新用户
 	updatedUser := &models.User{
-		Name:  "更新后的集成测试用户",
-		Email: "integration@example.com",
-		Age:   30,
+		Name:     "更新后的集成测试用户",
+		Email:    "integration@example.com",
+		Password: "hashed_password",
+		Age:      30,
 	}
 	updated, err := repo.Update(ctx, created.ID, updatedUser)
 	require.NoError(t, err)

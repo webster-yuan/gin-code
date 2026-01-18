@@ -4,6 +4,7 @@ import (
 	"runtime"
 
 	"gin/internal/api/response"
+	"gin/internal/i18n"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,6 +26,6 @@ func HealthHandler() gin.HandlerFunc {
 			"num_cpu":       runtime.NumCPU(),
 			"num_goroutine": runtime.NumGoroutine(),
 		}
-		response.Success(c, "服务运行正常", healthData)
+		response.Success(c, i18n.UserMessage(i18n.UserHealthCheckSuccess), healthData)
 	}
 }

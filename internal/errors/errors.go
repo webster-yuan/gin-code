@@ -1,11 +1,13 @@
 package errors
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"gin/internal/api/response"
+	"gin/internal/i18n"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
@@ -84,10 +86,13 @@ func ErrorHandler() gin.HandlerFunc {
 				respondError(c, appErr)
 			} else if _, ok := err.(validator.ValidationErrors); ok {
 				// 处理参数验证错误
-				respondError(c, NewBadRequestError("请求参数错误", err))
+				respondError(c, NewBadRequestError(i18n.UserMessage(i18n.UserErrorBadRequest), err))
+			} else if _, ok := err.(*json.SyntaxError); ok {
+				// 处理JSON语法错误
+				respondError(c, NewBadRequestError(i18n.UserMessage(i18n.UserErrorJSONFormat), err))
 			} else {
 				// 对于未处理的错误，返回500
-				respondError(c, NewInternalServerError("内部服务器错误", err))
+				respondError(c, NewInternalServerError(i18n.UserMessage(i18n.UserErrorInternal), err))
 			}
 		}
 	}

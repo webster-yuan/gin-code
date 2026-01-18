@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"gin/internal/errors"
 	"gin/internal/models"
 
 	"github.com/gin-gonic/gin"
@@ -66,10 +67,21 @@ func (m *MockUserService) DeleteUser(ctx context.Context, id int64) error {
 	return args.Error(0)
 }
 
+func (m *MockUserService) Login(ctx context.Context, req *models.LoginRequest) (*models.LoginResponse, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.LoginResponse), args.Error(1)
+}
+
 // setupTestRouter 设置测试路由
 func setupTestRouter(handler *UserHandler) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
+
+	// 添加错误处理中间件（与生产环境一致）
+	router.Use(errors.ErrorHandler())
 
 	api := router.Group("/api/v1")
 	users := api.Group("/users")
@@ -92,9 +104,10 @@ func TestUserHandler_CreateUser(t *testing.T) {
 		router := setupTestRouter(handler)
 
 		reqBody := models.CreateUserRequest{
-			Name:  "张三",
-			Email: "zhangsan@example.com",
-			Age:   25,
+			Name:     "张三",
+			Email:    "zhangsan@example.com",
+			Password: "123456",
+			Age:      25,
 		}
 
 		expectedUser := &models.User{
@@ -118,7 +131,7 @@ func TestUserHandler_CreateUser(t *testing.T) {
 		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
-		assert.Equal(t, float64(200), response["code"])
+		assert.Equal(t, float64(201), response["code"])
 		assert.Equal(t, "创建成功", response["message"])
 
 		mockService.AssertExpectations(t)

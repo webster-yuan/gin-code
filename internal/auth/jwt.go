@@ -29,7 +29,7 @@ func NewJWTConfig(secretKey string, expiresIn time.Duration) *JWTConfig {
 	}
 }
 
-// GenerateToken 生成JWT令牌
+// GenerateToken 生成访问令牌（Access Token）
 func (j *JWTConfig) GenerateToken(userID int64, email, name string) (string, error) {
 	// 创建声明
 	claims := UserClaims{
@@ -38,6 +38,33 @@ func (j *JWTConfig) GenerateToken(userID int64, email, name string) (string, err
 		Name:   name,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.ExpiresIn)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	// 创建令牌
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// 签名令牌
+	tokenString, err := token.SignedString([]byte(j.SecretKey))
+	if err != nil {
+		return "", err
+	}
+
+	return tokenString, nil
+}
+
+// GenerateRefreshToken 生成刷新令牌（Refresh Token）
+// 刷新令牌使用更长的过期时间
+func (j *JWTConfig) GenerateRefreshToken(userID int64, email, name string, refreshExpiresIn time.Duration) (string, error) {
+	// 创建声明
+	claims := UserClaims{
+		UserID: userID,
+		Email:  email,
+		Name:   name,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshExpiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},

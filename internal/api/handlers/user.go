@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
 
 	"gin/internal/api/response"
+	"gin/internal/errors"
+	"gin/internal/i18n"
 	"gin/internal/models"
 	"gin/internal/service"
 
@@ -49,7 +52,7 @@ func (h *UserHandler) CreateUser() gin.HandlerFunc {
 			return
 		}
 
-		response.Created(c, "创建成功", user)
+		response.Created(c, i18n.UserMessage(i18n.UserCreateSuccess), user)
 	}
 }
 
@@ -72,7 +75,7 @@ func (h *UserHandler) GetUser() gin.HandlerFunc {
 		idStr := c.Param("id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			c.Error(err)
+			c.Error(errors.NewBadRequestError(fmt.Sprintf(i18n.UserMessage(i18n.UserErrorInvalidID), idStr), err))
 			return
 		}
 
@@ -82,7 +85,7 @@ func (h *UserHandler) GetUser() gin.HandlerFunc {
 			return
 		}
 
-		response.Success(c, "获取成功", user)
+		response.Success(c, i18n.UserMessage(i18n.UserGetSuccess), user)
 	}
 }
 
@@ -105,7 +108,7 @@ func (h *UserHandler) GetAllUsers() gin.HandlerFunc {
 			return
 		}
 
-		response.Success(c, "获取成功", users)
+		response.Success(c, i18n.UserMessage(i18n.UserGetAllSuccess), users)
 	}
 }
 
@@ -128,7 +131,7 @@ func (h *UserHandler) UpdateUser() gin.HandlerFunc {
 		idStr := c.Param("id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			c.Error(err)
+			c.Error(errors.NewBadRequestError(fmt.Sprintf(i18n.UserMessage(i18n.UserErrorInvalidID), idStr), err))
 			return
 		}
 
@@ -144,7 +147,7 @@ func (h *UserHandler) UpdateUser() gin.HandlerFunc {
 			return
 		}
 
-		response.Success(c, "更新成功", user)
+		response.Success(c, i18n.UserMessage(i18n.UserUpdateSuccess), user)
 	}
 }
 
@@ -167,7 +170,7 @@ func (h *UserHandler) DeleteUser() gin.HandlerFunc {
 		idStr := c.Param("id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			c.Error(err)
+			c.Error(errors.NewBadRequestError(fmt.Sprintf(i18n.UserMessage(i18n.UserErrorInvalidID), idStr), err))
 			return
 		}
 
@@ -177,7 +180,36 @@ func (h *UserHandler) DeleteUser() gin.HandlerFunc {
 			return
 		}
 
-		response.Success(c, "删除成功", nil)
+		response.Success(c, i18n.UserMessage(i18n.UserDeleteSuccess), nil)
+	}
+}
+
+// Register 用户注册
+// @Summary 用户注册
+// @Description 用户注册新账户
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param register body models.CreateUserRequest true "注册信息"
+// @Success 201 {object} response.Response{data=models.User} "注册成功"
+// @Failure 400 {object} response.Response "请求参数错误或邮箱已被使用"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /api/v1/auth/register [post]
+func (h *UserHandler) Register() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req models.CreateUserRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.Error(err)
+			return
+		}
+
+		user, err := h.userService.CreateUser(c.Request.Context(), &req)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+
+		response.Created(c, i18n.UserMessage(i18n.UserRegisterSuccess), user)
 	}
 }
 
@@ -207,6 +239,36 @@ func (h *UserHandler) Login() gin.HandlerFunc {
 			return
 		}
 
-		response.Success(c, "登录成功", resp)
+		response.Success(c, i18n.UserMessage(i18n.UserLoginSuccess), resp)
+	}
+}
+
+// RefreshToken 刷新访问令牌
+// @Summary 刷新访问令牌
+// @Description 使用刷新令牌获取新的访问令牌
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param refresh body models.RefreshTokenRequest true "刷新令牌请求"
+// @Success 200 {object} response.Response{data=models.RefreshTokenResponse} "刷新成功"
+// @Failure 400 {object} response.Response "请求参数错误"
+// @Failure 401 {object} response.Response "无效的刷新令牌"
+// @Failure 500 {object} response.Response "服务器内部错误"
+// @Router /api/v1/auth/refresh [post]
+func (h *UserHandler) RefreshToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var req models.RefreshTokenRequest
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.Error(err)
+			return
+		}
+
+		resp, err := h.userService.RefreshToken(c.Request.Context(), &req)
+		if err != nil {
+			c.Error(err)
+			return
+		}
+
+		response.Success(c, i18n.UserMessage(i18n.UserRefreshTokenSuccess), resp)
 	}
 }

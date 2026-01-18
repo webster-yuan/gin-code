@@ -21,6 +21,7 @@ type UserService interface {
 	UpdateUser(ctx context.Context, id int64, req *models.UpdateUserRequest) (*models.User, error)
 	DeleteUser(ctx context.Context, id int64) error
 	Login(ctx context.Context, req *models.LoginRequest) (*models.LoginResponse, error)
+	RefreshToken(ctx context.Context, req *models.RefreshTokenRequest) (*models.RefreshTokenResponse, error)
 }
 
 // userService 用户服务实现
@@ -177,10 +178,20 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 		time.Duration(cfg.JWT.ExpiresIn)*time.Hour,
 	)
 
-	// 生成JWT令牌
-	token, err := jwtConfig.GenerateToken(user.ID, user.Email, user.Name)
+	// 生成访问令牌（Access Token）
+	accessToken, err := jwtConfig.GenerateToken(user.ID, user.Email, user.Name)
 	if err != nil {
-		return nil, errors.NewInternalServerError("生成令牌失败", err)
+		return nil, errors.NewInternalServerError("生成访问令牌失败", err)
+	}
+
+	// 生成刷新令牌（Refresh Token）
+	refreshExpiresIn := time.Duration(cfg.JWT.RefreshExpiresIn) * time.Hour
+	if refreshExpiresIn == 0 {
+		refreshExpiresIn = 7 * 24 * time.Hour // 默认7天
+	}
+	refreshToken, err := jwtConfig.GenerateRefreshToken(user.ID, user.Email, user.Name, refreshExpiresIn)
+	if err != nil {
+		return nil, errors.NewInternalServerError("生成刷新令牌失败", err)
 	}
 
 	// 返回用户信息和令牌
@@ -188,7 +199,34 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 	user.Password = ""
 
 	return &models.LoginResponse{
-		Token: token,
-		User:  *user,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+		User:         *user,
+	}, nil
+}
+
+// RefreshToken 刷新访问令牌
+func (s *userService) RefreshToken(ctx context.Context, req *models.RefreshTokenRequest) (*models.RefreshTokenResponse, error) {
+	// 获取JWT配置
+	cfg := config.GetConfig()
+	jwtConfig := auth.NewJWTConfig(
+		cfg.JWT.SecretKey,
+		time.Duration(cfg.JWT.ExpiresIn)*time.Hour,
+	)
+
+	// 解析刷新令牌
+	claims, err := jwtConfig.ParseToken(req.RefreshToken)
+	if err != nil {
+		return nil, errors.NewUnauthorizedError("无效的刷新令牌", err)
+	}
+
+	// 生成新的访问令牌
+	accessToken, err := jwtConfig.GenerateToken(claims.UserID, claims.Email, claims.Name)
+	if err != nil {
+		return nil, errors.NewInternalServerError("生成访问令牌失败", err)
+	}
+
+	return &models.RefreshTokenResponse{
+		AccessToken: accessToken,
 	}, nil
 }

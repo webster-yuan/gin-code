@@ -14,6 +14,17 @@ type LoginRequest struct {
 
 // LoginResponse 登录响应结构体
 type LoginResponse struct {
-	Token string `json:"token"`
-	User  User   `json:"user"`
+	AccessToken  string `json:"access_token"`  // 访问令牌
+	RefreshToken string `json:"refresh_token"` // 刷新令牌
+	User         User   `json:"user"`
+}
+
+// RefreshTokenRequest 刷新令牌请求结构体
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+// RefreshTokenResponse 刷新令牌响应结构体
+type RefreshTokenResponse struct {
+	AccessToken string `json:"access_token"` // 新的访问令牌
 }

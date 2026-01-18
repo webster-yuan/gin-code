@@ -35,8 +35,9 @@ type LoggingConfig struct {
 
 // JWTConfig JWT配置
 type JWTConfig struct {
-	SecretKey string `mapstructure:"secret_key"`
-	ExpiresIn int    `mapstructure:"expires_in"` // 过期时间（小时）
+	SecretKey        string `mapstructure:"secret_key"`
+	ExpiresIn        int    `mapstructure:"expires_in"`         // 访问令牌过期时间（小时）
+	RefreshExpiresIn int    `mapstructure:"refresh_expires_in"` // 刷新令牌过期时间（小时）
 }
 
 // AppConfig 提供一个全局可访问的配置实例
@@ -60,7 +61,8 @@ func LoadConfig() *Config {
 	viper.SetDefault("database.driver", "sqlite3")
 	viper.SetDefault("database.dsn", "./data/app.db")
 	viper.SetDefault("jwt.secret_key", "your-secret-key-change-in-production")
-	viper.SetDefault("jwt.expires_in", 24) // 默认24小时过期
+	viper.SetDefault("jwt.expires_in", 24)          // 默认24小时过期（访问令牌）
+	viper.SetDefault("jwt.refresh_expires_in", 168) // 默认7天过期（刷新令牌）
 
 	if err := viper.ReadInConfig(); err != nil { // 读取配置
 		log.Printf("无法读取配置文件: %v, 将使用默认值", err)

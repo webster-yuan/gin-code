@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"gin/internal/api/handlers"
 	"gin/internal/api/middleware"
 	apimiddleware "gin/internal/api/middleware"
@@ -117,15 +116,13 @@ func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
 		// 认证路由（不需要认证）
 		auth := apiGroup.Group("/auth")
 		{
-			auth.POST("/login", userHandler.Login()) // POST /api/v1/auth/login
+			auth.POST("/register", userHandler.Register())    // POST /api/v1/auth/register
+			auth.POST("/login", userHandler.Login())          // POST /api/v1/auth/login
+			auth.POST("/refresh", userHandler.RefreshToken()) // POST /api/v1/auth/refresh
 		}
 
 		// 用户相关路由（需要认证）
 		users := apiGroup.Group("/users")
-		users.Use(func(c *gin.Context) {
-			fmt.Println("=== 用户路由组中间件被调用 ===")
-			c.Next()
-		})
 		users.Use(middleware.NewAuthMiddleware()) // 应用认证中间件
 		{
 			users.POST("", userHandler.CreateUser())       // POST /api/v1/users
