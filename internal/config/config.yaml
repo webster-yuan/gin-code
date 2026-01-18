@@ -1,0 +1,16 @@
+server:
+  port: "8080"
+  read_timeout: 5
+  write_timeout: 5
+
+database:
+  driver: "sqlite3"  # mysql 或 sqlite3
+  dsn: "./data/app.db"  # SQLite 文件路径，或 MySQL DSN
+
+logging:
+  level: "info"
+#  file: "./logs/app.log"
+jwt:
+  secret_key: "your-secret-key-change-in-production"
+  expires_in: 24        # 访问令牌过期时间（小时）
+  refresh_expires_in: 168  # 刷新令牌过期时间（小时，默认7天）

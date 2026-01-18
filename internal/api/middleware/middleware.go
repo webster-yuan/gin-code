@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"bytes"
-	"fmt"
 	"time"
 
+	"gin/internal/i18n"
+	"gin/internal/logger"
+
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // StatCost 记录接口耗时的中间件
@@ -21,7 +24,20 @@ func StatCost() gin.HandlerFunc {
 		c.Next() // 真正执行业务 handler
 		cost := time.Since(start)
 
-		fmt.Printf("[StatCost] %s | %s | %v\n", path, handlerName, cost)
+		// 获取请求ID（如果存在）
+		requestID, _ := c.Get("request_id")
+		requestIDStr := ""
+		if id, ok := requestID.(string); ok {
+			requestIDStr = id
+		}
+
+		logger.Log.Info(i18n.LogMessage(i18n.LogRequestCost),
+			zap.String("request_id", requestIDStr),
+			zap.String("path", path),
+			zap.String("handler", handlerName),
+			zap.Duration("cost", cost),
+			zap.String("method", c.Request.Method),
+		)
 	}
 }
 
@@ -44,6 +60,24 @@ func GinBodyLogMiddleware() gin.HandlerFunc {
 		}
 		c.Writer = bodyLogWriter
 		c.Next()
-		fmt.Printf("response body is : %v\n", bodyLogWriter.body.String())
+
+		// 获取请求ID（如果存在）
+		requestID, _ := c.Get("request_id")
+		requestIDStr := ""
+		if id, ok := requestID.(string); ok {
+			requestIDStr = id
+		}
+
+		// 记录响应体（仅在调试模式下或错误响应时记录）
+		bodyStr := bodyLogWriter.body.String()
+		if c.Writer.Status() >= 400 || logger.Log.Core().Enabled(zap.DebugLevel) {
+			logger.Log.Debug(i18n.LogMessage(i18n.LogResponseBody),
+				zap.String("request_id", requestIDStr),
+				zap.String("path", c.Request.URL.Path),
+				zap.String("method", c.Request.Method),
+				zap.Int("status", c.Writer.Status()),
+				zap.String("body", bodyStr),
+			)
+		}
 	}
 }

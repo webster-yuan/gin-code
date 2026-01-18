@@ -1,11 +1,16 @@
 package errors
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
+	"gin/internal/api/response"
+	"gin/internal/i18n"
+
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 // AppError 应用错误结构体
@@ -52,10 +57,24 @@ func NewInternalServerError(msg string, err error) *AppError {
 	}
 }
 
+// NewUnauthorizedError 创建401错误
+func NewUnauthorizedError(msg string, err error) *AppError {
+	return &AppError{
+		Code:    http.StatusUnauthorized,
+		Message: msg,
+		Err:     err,
+	}
+}
+
 // ErrorHandler 统一错误处理中间件
 func ErrorHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
+
+		// 如果已经写入响应，不再处理
+		if c.Writer.Written() {
+			return
+		}
 
 		// 处理最后一个错误
 		if len(c.Errors) > 0 {
@@ -63,15 +82,23 @@ func ErrorHandler() gin.HandlerFunc {
 			var appErr *AppError
 
 			if errors.As(err, &appErr) {
-				c.JSON(appErr.Code, gin.H{
-					"error": appErr.Message,
-				})
+				// 使用统一响应格式
+				respondError(c, appErr)
+			} else if _, ok := err.(validator.ValidationErrors); ok {
+				// 处理参数验证错误
+				respondError(c, NewBadRequestError(i18n.UserMessage(i18n.UserErrorBadRequest), err))
+			} else if _, ok := err.(*json.SyntaxError); ok {
+				// 处理JSON语法错误
+				respondError(c, NewBadRequestError(i18n.UserMessage(i18n.UserErrorJSONFormat), err))
 			} else {
 				// 对于未处理的错误，返回500
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": "内部服务器错误",
-				})
+				respondError(c, NewInternalServerError(i18n.UserMessage(i18n.UserErrorInternal), err))
 			}
 		}
 	}
+}
+
+// respondError 使用统一响应格式返回错误
+func respondError(c *gin.Context, appErr *AppError) {
+	response.Error(c, appErr.Code, appErr.Message, appErr.Err)
 }

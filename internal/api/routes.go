@@ -3,23 +3,36 @@ package api
 import (
 	"gin/internal/api/handlers"
 	"gin/internal/api/middleware"
+	apimiddleware "gin/internal/api/middleware"
+	_ "gin/internal/docs" // 导入Swagger文档
+	"gin/internal/errors"
+	"gin/internal/metrics"
+	appmiddleware "gin/internal/middleware"
 	"net/http"
 	"path/filepath"
 	"runtime"
 
 	"github.com/gin-gonic/gin"
+	"github.com/swaggo/files"
+	"github.com/swaggo/gin-swagger"
 )
 
 // 返回 main.go 所在的文件夹
 func getCurrentPath() string {
 	_, file, _, _ := runtime.Caller(0)
 	return filepath.Dir(file)
-}
+} // SetupRouter 设置路由（无依赖注入）
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 	basePath := getCurrentPath()
 	// 向上跳两级到项目根目录
 	basePath = filepath.Dir(filepath.Dir(basePath))
+
+	// 添加全局中间件（在设置路由之前）
+	router.Use(apimiddleware.GinBodyLogMiddleware())
+	router.Use(errors.ErrorHandler())
+	router.Use(metrics.PrometheusMiddleware())
+	router.Use(appmiddleware.Recovery())
 
 	// 模板和静态文件设置
 	handlers.SetupTemplates(router, basePath)
@@ -64,10 +77,67 @@ func SetupRouter() *gin.Engine {
 	router.Any("/test", handlers.TestHandler())
 	router.NoRoute(handlers.NoRouteHandler())
 
-	// 路由组
-	userGroup := router.Group("/user", middleware.StatCost())
+	// 路由组（已迁移到 SetupRouterWithDI，此处保留注释）
+	// userGroup := router.Group("/user", middleware.StatCost())
+	// {
+	// 	userGroup.GET("/index", handlers.GetUser())
+	// }
+
+	return router
+}
+
+// SetupRouterWithDI 设置路由（带依赖注入）
+func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
+	router := gin.Default()
+	basePath := getCurrentPath()
+	basePath = filepath.Dir(filepath.Dir(basePath))
+
+	// 添加全局中间件（在设置路由之前）
+	router.Use(apimiddleware.GinBodyLogMiddleware())
+	router.Use(errors.ErrorHandler())
+	router.Use(metrics.PrometheusMiddleware())
+	router.Use(appmiddleware.Recovery())
+
+	// 添加请求ID中间件（全局）
+	router.Use(middleware.RequestIDMiddleware())
+
+	// 模板和静态文件设置
+	handlers.SetupTemplates(router, basePath)
+
+	// 健康检查端点
+	router.GET("/health", handlers.HealthHandler())
+
+	// Swagger 文档路由
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// API 路由组
+	apiGroup := router.Group("/api/v1")
 	{
-		userGroup.GET("/index", handlers.GetUser())
+		// 认证路由（不需要认证）
+		auth := apiGroup.Group("/auth")
+		{
+			auth.POST("/register", userHandler.Register())    // POST /api/v1/auth/register
+			auth.POST("/login", userHandler.Login())          // POST /api/v1/auth/login
+			auth.POST("/refresh", userHandler.RefreshToken()) // POST /api/v1/auth/refresh
+		}
+
+		// 用户相关路由（需要认证）
+		users := apiGroup.Group("/users")
+		users.Use(middleware.NewAuthMiddleware()) // 应用认证中间件
+		{
+			// 需要管理员权限的路由
+			adminUsers := users.Group("")
+			adminUsers.Use(middleware.RequireAdmin()) // 应用管理员权限检查
+			{
+				adminUsers.POST("", userHandler.CreateUser())       // POST /api/v1/users（仅管理员）
+				adminUsers.DELETE("/:id", userHandler.DeleteUser()) // DELETE /api/v1/users/:id（仅管理员）
+			}
+
+			// 普通用户和管理员都可以访问的路由
+			users.GET("", userHandler.GetAllUsers())    // GET /api/v1/users
+			users.GET("/:id", userHandler.GetUser())    // GET /api/v1/users/:id
+			users.PUT("/:id", userHandler.UpdateUser()) // PUT /api/v1/users/:id
+		}
 	}
 
 	return router

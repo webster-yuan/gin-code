@@ -1,0 +1,35 @@
+package models
+
+import (
+	"time"
+
+	"gin/internal/auth"
+)
+
+// User 用户模型
+type User struct {
+	ID        int64     `json:"id" db:"id"`
+	Name      string    `json:"name" db:"name" binding:"required,min=2,max=50"`
+	Email     string    `json:"email" db:"email" binding:"required,email"`
+	Password  string    `json:"password,omitempty" db:"password" binding:"required,min=6"`
+	Age       int       `json:"age" db:"age" binding:"gte=0,lte=150"`
+	Role      auth.Role `json:"role" db:"role"` // 角色：0=普通用户，1=超级管理员
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// CreateUserRequest 创建用户请求
+type CreateUserRequest struct {
+	Name     string `json:"name" binding:"required,min=2,max=50"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+	Age      int    `json:"age" binding:"gte=0,lte=150"`
+}
+
+// UpdateUserRequest 更新用户请求
+type UpdateUserRequest struct {
+	Name     string `json:"name" binding:"omitempty,min=2,max=50"`
+	Email    string `json:"email" binding:"omitempty,email"`
+	Password string `json:"password" binding:"omitempty,min=6"`
+	Age      int    `json:"age" binding:"omitempty,gte=0,lte=150"`
+}
