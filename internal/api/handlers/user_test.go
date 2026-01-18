@@ -75,6 +75,14 @@ func (m *MockUserService) Login(ctx context.Context, req *models.LoginRequest) (
 	return args.Get(0).(*models.LoginResponse), args.Error(1)
 }
 
+func (m *MockUserService) RefreshToken(ctx context.Context, req *models.RefreshTokenRequest) (*models.RefreshTokenResponse, error) {
+	args := m.Called(ctx, req)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.RefreshTokenResponse), args.Error(1)
+}
+
 // setupTestRouter 设置测试路由
 func setupTestRouter(handler *UserHandler) *gin.Engine {
 	gin.SetMode(gin.TestMode)
