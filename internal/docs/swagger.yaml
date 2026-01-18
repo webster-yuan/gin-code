@@ -1,5 +1,13 @@
 basePath: /
 definitions:
+  auth.Role:
+    enum:
+    - 0
+    - 1
+    type: integer
+    x-enum-varnames:
+    - RoleUser
+    - RoleAdmin
   models.CreateUserRequest:
     properties:
       age:
@@ -90,6 +98,10 @@ definitions:
       password:
         minLength: 6
         type: string
+      role:
+        allOf:
+        - $ref: '#/definitions/auth.Role'
+        description: 角色：0=普通用户，1=超级管理员
       updated_at:
         type: string
     required:

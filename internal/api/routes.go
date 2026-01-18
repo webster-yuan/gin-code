@@ -125,11 +125,18 @@ func SetupRouterWithDI(userHandler *handlers.UserHandler) *gin.Engine {
 		users := apiGroup.Group("/users")
 		users.Use(middleware.NewAuthMiddleware()) // 应用认证中间件
 		{
-			users.POST("", userHandler.CreateUser())       // POST /api/v1/users
-			users.GET("", userHandler.GetAllUsers())       // GET /api/v1/users
-			users.GET("/:id", userHandler.GetUser())       // GET /api/v1/users/:id
-			users.PUT("/:id", userHandler.UpdateUser())    // PUT /api/v1/users/:id
-			users.DELETE("/:id", userHandler.DeleteUser()) // DELETE /api/v1/users/:id
+			// 需要管理员权限的路由
+			adminUsers := users.Group("")
+			adminUsers.Use(middleware.RequireAdmin()) // 应用管理员权限检查
+			{
+				adminUsers.POST("", userHandler.CreateUser())       // POST /api/v1/users（仅管理员）
+				adminUsers.DELETE("/:id", userHandler.DeleteUser()) // DELETE /api/v1/users/:id（仅管理员）
+			}
+
+			// 普通用户和管理员都可以访问的路由
+			users.GET("", userHandler.GetAllUsers())    // GET /api/v1/users
+			users.GET("/:id", userHandler.GetUser())    // GET /api/v1/users/:id
+			users.PUT("/:id", userHandler.UpdateUser()) // PUT /api/v1/users/:id
 		}
 	}
 

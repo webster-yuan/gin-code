@@ -26,6 +26,11 @@ const (
 	LogResponseBody   MessageKey = "log.response.body"
 	LogPanicRecovered MessageKey = "log.panic.recovered"
 	LogInternalError  MessageKey = "log.internal.error"
+
+	// 权限相关
+	LogPermissionDenied            MessageKey = "log.permission.denied"
+	LogPermissionDeniedNoRole      MessageKey = "log.permission.denied.no_role"
+	LogPermissionDeniedInvalidRole MessageKey = "log.permission.denied.invalid_role"
 )
 
 // 用户消息键（中文，用于API响应）
@@ -50,6 +55,9 @@ const (
 	UserErrorInvalidID  MessageKey = "user.error.invalid_id"
 	UserErrorJSONFormat MessageKey = "user.error.json_format"
 	UserErrorInternal   MessageKey = "user.error.internal"
+
+	// 权限相关
+	UserPermissionDenied MessageKey = "user.permission.denied"
 
 	// 系统相关
 	UserHealthCheckSuccess MessageKey = "user.health.check_success"
@@ -89,6 +97,18 @@ var messages = map[MessageKey]map[Language]string{
 	LogInternalError: {
 		LanguageEn: "Internal server error",
 		LanguageZh: "内部服务器错误",
+	},
+	LogPermissionDenied: {
+		LanguageEn: "Permission denied: insufficient role",
+		LanguageZh: "权限不足：角色权限不够",
+	},
+	LogPermissionDeniedNoRole: {
+		LanguageEn: "Permission denied: no role found",
+		LanguageZh: "权限不足：未找到角色信息",
+	},
+	LogPermissionDeniedInvalidRole: {
+		LanguageEn: "Permission denied: invalid role",
+		LanguageZh: "权限不足：无效的角色信息",
 	},
 
 	// 用户消息（中文，用于API响应）
@@ -147,6 +167,10 @@ var messages = map[MessageKey]map[Language]string{
 	UserErrorInternal: {
 		LanguageZh: "内部服务器错误",
 		LanguageEn: "Internal server error",
+	},
+	UserPermissionDenied: {
+		LanguageZh: "权限不足",
+		LanguageEn: "Permission denied",
 	},
 	UserHealthCheckSuccess: {
 		LanguageZh: "服务运行正常",

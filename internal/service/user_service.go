@@ -51,12 +51,13 @@ func (s *userService) CreateUser(ctx context.Context, req *models.CreateUserRequ
 		return nil, errors.NewInternalServerError("密码加密失败", err)
 	}
 
-	// 创建用户
+	// 创建用户（默认为普通用户）
 	user := &models.User{
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: hashedPassword,
 		Age:      req.Age,
+		Role:     auth.RoleUser, // 默认角色为普通用户
 	}
 
 	return s.userRepo.Create(ctx, user)
@@ -179,7 +180,7 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 	)
 
 	// 生成访问令牌（Access Token）
-	accessToken, err := jwtConfig.GenerateToken(user.ID, user.Email, user.Name)
+	accessToken, err := jwtConfig.GenerateToken(user.ID, user.Email, user.Name, user.Role)
 	if err != nil {
 		return nil, errors.NewInternalServerError("生成访问令牌失败", err)
 	}
@@ -189,7 +190,7 @@ func (s *userService) Login(ctx context.Context, req *models.LoginRequest) (*mod
 	if refreshExpiresIn == 0 {
 		refreshExpiresIn = 7 * 24 * time.Hour // 默认7天
 	}
-	refreshToken, err := jwtConfig.GenerateRefreshToken(user.ID, user.Email, user.Name, refreshExpiresIn)
+	refreshToken, err := jwtConfig.GenerateRefreshToken(user.ID, user.Email, user.Name, user.Role, refreshExpiresIn)
 	if err != nil {
 		return nil, errors.NewInternalServerError("生成刷新令牌失败", err)
 	}
@@ -221,7 +222,7 @@ func (s *userService) RefreshToken(ctx context.Context, req *models.RefreshToken
 	}
 
 	// 生成新的访问令牌
-	accessToken, err := jwtConfig.GenerateToken(claims.UserID, claims.Email, claims.Name)
+	accessToken, err := jwtConfig.GenerateToken(claims.UserID, claims.Email, claims.Name, claims.Role)
 	if err != nil {
 		return nil, errors.NewInternalServerError("生成访问令牌失败", err)
 	}

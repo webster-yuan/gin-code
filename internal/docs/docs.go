@@ -582,6 +582,17 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.Role": {
+            "type": "integer",
+            "enum": [
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "RoleUser",
+                "RoleAdmin"
+            ]
+        },
         "models.CreateUserRequest": {
             "type": "object",
             "required": [
@@ -713,6 +724,14 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 6
+                },
+                "role": {
+                    "description": "角色：0=普通用户，1=超级管理员",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/auth.Role"
+                        }
+                    ]
                 },
                 "updated_at": {
                     "type": "string"

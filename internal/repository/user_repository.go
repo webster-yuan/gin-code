@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"gin/internal/auth"
 	"gin/internal/database"
 	"gin/internal/models"
 )
@@ -38,8 +39,8 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 
 	// SQLite 不支持 RETURNING，使用 Exec + LastInsertId
 	result, err := r.db.Exec(
-		"INSERT INTO users (name, email, password, age, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-		user.Name, user.Email, user.Password, user.Age, user.CreatedAt, user.UpdatedAt,
+		"INSERT INTO users (name, email, password, age, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		user.Name, user.Email, user.Password, user.Age, int(user.Role), user.CreatedAt, user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("创建用户失败: %w", err)
@@ -57,17 +58,20 @@ func (r *userRepository) Create(ctx context.Context, user *models.User) (*models
 // FindByID 根据ID查找用户
 func (r *userRepository) FindByID(ctx context.Context, id int64) (*models.User, error) {
 	query := `
-		SELECT id, name, email, age, created_at, updated_at
+		SELECT id, name, email, password, age, role, created_at, updated_at
 		FROM users
 		WHERE id = ?
 	`
 
+	var roleInt int
 	user := &models.User{}
 	err := r.db.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
+		&user.Password,
 		&user.Age,
+		&roleInt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -77,6 +81,7 @@ func (r *userRepository) FindByID(ctx context.Context, id int64) (*models.User, 
 		}
 		return nil, fmt.Errorf("查询用户失败: %w", err)
 	}
+	user.Role = auth.Role(roleInt)
 
 	return user, nil
 }
@@ -84,11 +89,12 @@ func (r *userRepository) FindByID(ctx context.Context, id int64) (*models.User, 
 // FindByEmail 根据邮箱查找用户
 func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models.User, error) {
 	query := `
-		SELECT id, name, email, password, age, created_at, updated_at
+		SELECT id, name, email, password, age, role, created_at, updated_at
 		FROM users
 		WHERE email = ?
 	`
 
+	var roleInt int
 	user := &models.User{}
 	err := r.db.QueryRow(query, email).Scan(
 		&user.ID,
@@ -96,6 +102,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 		&user.Email,
 		&user.Password,
 		&user.Age,
+		&roleInt,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -105,6 +112,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 		}
 		return nil, fmt.Errorf("查询用户失败: %w", err)
 	}
+	user.Role = auth.Role(roleInt)
 
 	return user, nil
 }
@@ -112,7 +120,7 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*models
 // FindAll 查找所有用户
 func (r *userRepository) FindAll(ctx context.Context) ([]*models.User, error) {
 	query := `
-		SELECT id, name, email, age, created_at, updated_at
+		SELECT id, name, email, age, role, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 	`
@@ -125,18 +133,21 @@ func (r *userRepository) FindAll(ctx context.Context) ([]*models.User, error) {
 
 	var users []*models.User
 	for rows.Next() {
+		var roleInt int
 		user := &models.User{}
 		err := rows.Scan(
 			&user.ID,
 			&user.Name,
 			&user.Email,
 			&user.Age,
+			&roleInt,
 			&user.CreatedAt,
 			&user.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("扫描用户数据失败: %w", err)
 		}
+		user.Role = auth.Role(roleInt)
 		users = append(users, user)
 	}
 
@@ -153,11 +164,11 @@ func (r *userRepository) Update(ctx context.Context, id int64, user *models.User
 
 	query := `
 		UPDATE users
-		SET name = ?, email = ?, age = ?, updated_at = ?
+		SET name = ?, email = ?, age = ?, role = ?, updated_at = ?
 		WHERE id = ?
 	`
 
-	result, err := r.db.Exec(query, user.Name, user.Email, user.Age, user.UpdatedAt, id)
+	result, err := r.db.Exec(query, user.Name, user.Email, user.Age, int(user.Role), user.UpdatedAt, id)
 	if err != nil {
 		return nil, fmt.Errorf("更新用户失败: %w", err)
 	}

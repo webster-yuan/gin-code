@@ -75,6 +75,7 @@ func AuthMiddleware(jwtConfig *auth.JWTConfig) gin.HandlerFunc {
 		c.Set("user_id", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("name", claims.Name)
+		c.Set("role", claims.Role)
 
 		logger.Log.Debug(i18n.LogMessage(i18n.LogAuthSuccess),
 			zap.String("request_id", requestIDStr),
@@ -82,10 +83,76 @@ func AuthMiddleware(jwtConfig *auth.JWTConfig) gin.HandlerFunc {
 			zap.String("method", method),
 			zap.Int64("user_id", claims.UserID),
 			zap.String("email", claims.Email),
+			zap.String("role", claims.Role.String()),
 		)
 
 		c.Next()
 	}
+}
+
+// RequireRole 要求特定角色的中间件
+func RequireRole(requiredRole auth.Role) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// 获取请求ID（如果存在）
+		requestID, _ := c.Get("request_id")
+		requestIDStr := ""
+		if id, ok := requestID.(string); ok {
+			requestIDStr = id
+		}
+
+		// 从上下文中获取用户角色
+		roleValue, exists := c.Get("role")
+		if !exists {
+			logger.Log.Warn(i18n.LogMessage(i18n.LogPermissionDeniedNoRole),
+				zap.String("request_id", requestIDStr),
+				zap.String("path", c.Request.URL.Path),
+				zap.String("method", c.Request.Method),
+			)
+			response.Forbidden(c, i18n.UserMessage(i18n.UserPermissionDenied), nil)
+			c.Abort()
+			return
+		}
+
+		role, ok := roleValue.(auth.Role)
+		if !ok {
+			logger.Log.Warn(i18n.LogMessage(i18n.LogPermissionDeniedInvalidRole),
+				zap.String("request_id", requestIDStr),
+				zap.String("path", c.Request.URL.Path),
+				zap.String("method", c.Request.Method),
+			)
+			response.Forbidden(c, i18n.UserMessage(i18n.UserPermissionDenied), nil)
+			c.Abort()
+			return
+		}
+
+		// 检查角色权限
+		// 管理员拥有所有权限
+		if role.IsAdmin() {
+			c.Next()
+			return
+		}
+
+		// 检查是否匹配所需角色
+		if role != requiredRole {
+			logger.Log.Warn(i18n.LogMessage(i18n.LogPermissionDenied),
+				zap.String("request_id", requestIDStr),
+				zap.String("path", c.Request.URL.Path),
+				zap.String("method", c.Request.Method),
+				zap.String("user_role", role.String()),
+				zap.String("required_role", requiredRole.String()),
+			)
+			response.Forbidden(c, i18n.UserMessage(i18n.UserPermissionDenied), nil)
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// RequireAdmin 要求管理员角色的中间件（快捷方法）
+func RequireAdmin() gin.HandlerFunc {
+	return RequireRole(auth.RoleAdmin)
 }
 
 // NewAuthMiddleware 创建认证中间件实例

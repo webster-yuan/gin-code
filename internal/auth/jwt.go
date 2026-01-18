@@ -18,6 +18,7 @@ type UserClaims struct {
 	UserID int64  `json:"user_id"`
 	Email  string `json:"email"`
 	Name   string `json:"name"`
+	Role   Role   `json:"role"` // 用户角色
 	jwt.RegisteredClaims
 }
 
@@ -30,12 +31,13 @@ func NewJWTConfig(secretKey string, expiresIn time.Duration) *JWTConfig {
 }
 
 // GenerateToken 生成访问令牌（Access Token）
-func (j *JWTConfig) GenerateToken(userID int64, email, name string) (string, error) {
+func (j *JWTConfig) GenerateToken(userID int64, email, name string, role Role) (string, error) {
 	// 创建声明
 	claims := UserClaims{
 		UserID: userID,
 		Email:  email,
 		Name:   name,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(j.ExpiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -57,12 +59,13 @@ func (j *JWTConfig) GenerateToken(userID int64, email, name string) (string, err
 
 // GenerateRefreshToken 生成刷新令牌（Refresh Token）
 // 刷新令牌使用更长的过期时间
-func (j *JWTConfig) GenerateRefreshToken(userID int64, email, name string, refreshExpiresIn time.Duration) (string, error) {
+func (j *JWTConfig) GenerateRefreshToken(userID int64, email, name string, role Role, refreshExpiresIn time.Duration) (string, error) {
 	// 创建声明
 	claims := UserClaims{
 		UserID: userID,
 		Email:  email,
 		Name:   name,
+		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(refreshExpiresIn)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

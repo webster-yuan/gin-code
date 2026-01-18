@@ -6,60 +6,38 @@
 
 ## 🔐 认证授权相关
 
-### RBAC 权限控制系统 ⚠️ 待实现
+### RBAC 权限控制系统 ✅ 已完成
 
 **优先级：** 低
 
-**问题描述：**
-当前项目缺少基于角色的访问控制（Role-Based Access Control, RBAC）机制。所有用户权限相同，无法实现细粒度的权限管理。
+**状态：** ✅ 已完成（2026-01-18）
 
-**建议实现方案：**
+**实现内容：**
+1. ✅ **角色定义**：实现了 `RoleUser`（普通用户）和 `RoleAdmin`（超级管理员）两种角色
+2. ✅ **用户角色关联**：在用户表中添加了 `role` 字段（INTEGER，默认值为0）
+3. ✅ **权限中间件**：实现了 `RequireRole()` 和 `RequireAdmin()` 中间件
+4. ✅ **JWT集成**：JWT Claims 中包含角色信息
+5. ✅ **路由权限配置**：管理员路由（创建用户、删除用户）需要管理员权限
+6. ✅ **国际化支持**：权限相关消息支持国际化
 
-1. **角色定义**
-   ```go
-   type Role int
-   const (
-       RoleAdmin Role = iota  // 管理员
-       RoleUser               // 普通用户
-       // 可根据业务需求扩展更多角色
-   )
-   ```
+**实现文件：**
+- `internal/auth/role.go` - 角色定义和权限检查方法
+- `internal/auth/jwt.go` - JWT Claims 包含角色
+- `internal/api/middleware/auth.go` - 权限检查中间件
+- `internal/models/user.go` - 用户模型包含角色字段
+- `internal/database/migrate.go` - 数据库迁移包含role字段
+- `internal/repository/user_repository.go` - Repository层支持角色
+- `internal/service/user_service.go` - Service层支持角色
+- `internal/api/routes.go` - 路由权限配置
+- `internal/i18n/i18n.go` - 权限相关国际化消息
 
-2. **用户角色关联**
-   - 在用户表中添加 `role` 字段
-   - 或在单独的 `user_roles` 表中建立关联
+**功能说明：**
+详见 [RBAC权限控制功能说明.md](./RBAC权限控制功能说明.md)
 
-3. **权限中间件**
-   ```go
-   func RequireRole(role Role) gin.HandlerFunc {
-       return func(c *gin.Context) {
-           // 从 JWT 中获取用户角色
-           // 验证用户是否具有所需角色
-           // 无权限则返回 403 Forbidden
-       }
-   }
-   ```
-
-4. **权限检查**
-   - 在路由组中应用角色检查中间件
-   - 或在特定路由中应用权限要求
-
-**预期收益：**
-- ✅ 实现细粒度的权限控制
-- ✅ 支持多角色权限管理
-- ✅ 提升系统安全性
-- ✅ 便于后续扩展权限功能
-
-**相关文件：**
-- `internal/models/user.go` - 用户模型
-- `internal/api/middleware/auth.go` - 认证中间件
-- `internal/auth/jwt.go` - JWT 声明（需要添加角色信息）
-- `internal/api/routes.go` - 路由配置
-
-**备注：**
-- 当前版本已实现基本的 JWT 认证
-- 刷新令牌机制已实现
-- RBAC 作为可选增强功能，可根据实际业务需求决定是否实现
+**扩展性：**
+- 代码结构支持添加新角色（使用 `iota`）
+- `HasPermission()` 方法支持细粒度权限检查
+- 数据库使用整数存储角色，便于扩展
 
 ---
 

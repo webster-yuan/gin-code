@@ -1,6 +1,10 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"gin/internal/auth"
+)
 
 // User 用户模型
 type User struct {
@@ -9,6 +13,7 @@ type User struct {
 	Email     string    `json:"email" db:"email" binding:"required,email"`
 	Password  string    `json:"password,omitempty" db:"password" binding:"required,min=6"`
 	Age       int       `json:"age" db:"age" binding:"gte=0,lte=150"`
+	Role      auth.Role `json:"role" db:"role"` // 角色：0=普通用户，1=超级管理员
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
